@@ -4,4 +4,5 @@
 # except a few
 !*.go
 !oauth2
+!jwx
 !Godeps

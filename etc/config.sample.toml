@@ -20,9 +20,22 @@ base-url = "http://localhost:8080/"
 # log-json-output = false
 ## Logs are output as JSON for easier parsing
 
-# [accesstoken]
-# secret = "makemehardtoguess"
-## Secret used to sign (HMAC-SHA256) access and refresh tokens. secret is accesstoken_key_(acc|prod) in ansible-vault
+[accesstoken]
+jwk-set = """
+{ "keys": [
+  { "kty": "EC",
+    "use": "sig",
+    "kid": "1",
+    "crv": "P-256",
+    "x": "g9IULlEyYGp3i2IZ1STiuDQ0rcrt3r3o-01f7_wOM_o=",
+    "y": "8QfpzSUvN4UAI4PliUXpeOv8RwLU8P8qLXqhTCc4w1M=",
+    "d": "dIz2ALAunAxB5ajQVx3fAdbttNX4WazEyvXLyi6BFBc="
+  }
+]}
+"""
+# jwk-id = "1"
+## The key id (kid) of the JWK to use when creating access tokens. Defaults to the first key in the set.
+## JSON Web Key Set: mandatory, should be a JWKS containing HMAC and / or ECDSA keys as specified in RFC 7517 and RFC 7518 section 6
 # lifetime = 36000
 ## Lifetime of access tokens
 # issuer = "http://localhost:8080/authorize"
@@ -38,9 +51,9 @@ base-url = "http://localhost:8080/"
 [idp]
 ## IdP configuration
 base-url = "https://acc.api.data.amsterdam.nl/auth/idp/login"
-api-key = "key"
+api-key = "apikey"
 ## api-key is authz_admin_api_key_(acc|prod) in ansible-vault
-secret = "sharedsecret"
+secret = "idp-signkey"
 ## secret is refreshtoken_key_(acc|prod) in ansible-vault
 accounts-url = "https://acc.api.data.amsterdam.nl/authz_admin/accounts/"
 

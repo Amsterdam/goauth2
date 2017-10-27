@@ -1,22 +1,15 @@
 package oauth2
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
+	"errors"
 	"time"
+
+	"github.com/amsterdam/authz/jose"
 
 	"github.com/google/uuid"
 )
 
-type accessTokenJWTHeader struct {
-	Type      string `json:"typ"`
-	Algorithm string `json:"alg"`
-}
-
-type accessTokenJWTPayload struct {
+type accessTokenPayload struct {
 	Issuer    string   `json:"iss"`
 	Subject   string   `json:"sub"`
 	IssuedAt  int64    `json:"iat"`
@@ -27,17 +20,18 @@ type accessTokenJWTPayload struct {
 }
 
 type accessTokenEncoder struct {
-	secret   []byte
-	lifetime int64
-	issuer   string
+	jwks     *jose.JWKSet
+	Lifetime int64
+	Issuer   string
+	KeyID    string
 }
 
-func newAccessTokenEncoder(secret []byte, lifetime int64, issuer string) *accessTokenEncoder {
-	return &accessTokenEncoder{secret, lifetime, issuer}
-}
-
-func (enc *accessTokenEncoder) Lifetime() int64 {
-	return enc.lifetime
+func newAccessTokenEncoder(jwks *jose.JWKSet) (*accessTokenEncoder, error) {
+	kids := jwks.KeyIDs()
+	if len(kids) < 1 {
+		return nil, errors.New("JWK set must contain at least one key")
+	}
+	return &accessTokenEncoder{jwks: jwks, Lifetime: 60, KeyID: kids[0]}, nil
 }
 
 func (enc *accessTokenEncoder) Encode(subject string, scopes []string) (string, error) {
@@ -45,39 +39,15 @@ func (enc *accessTokenEncoder) Encode(subject string, scopes []string) (string, 
 	if err != nil {
 		return "", err
 	}
-	// End compat
 	now := time.Now().Unix()
-	header := &accessTokenJWTHeader{
-		Type:      "JWT",
-		Algorithm: "HS256",
-	}
-	payload := &accessTokenJWTPayload{
-		Issuer:    enc.issuer,
+	payload := &accessTokenPayload{
+		Issuer:    enc.Issuer,
 		Subject:   subject,
 		IssuedAt:  now,
 		NotBefore: now - 10,
-		ExpiresAt: now + enc.lifetime,
+		ExpiresAt: now + enc.Lifetime,
 		JWTId:     jti.String(),
 		Scopes:    scopes,
 	}
-	return enc.jwt(header, payload)
-}
-
-func (enc *accessTokenEncoder) jwt(
-	header *accessTokenJWTHeader, payload *accessTokenJWTPayload) (string, error) {
-	headerJSON, err := json.Marshal(header)
-	if err != nil {
-		return "", err
-	}
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-	headerB64 := base64.RawURLEncoding.EncodeToString(headerJSON)
-	payloadB64 := base64.RawURLEncoding.EncodeToString(payloadJSON)
-	mac := hmac.New(sha256.New, enc.secret)
-	mac.Write([]byte(fmt.Sprintf("%s.%s", headerB64, payloadB64)))
-	digest := mac.Sum(nil)
-	digestB64 := base64.RawURLEncoding.EncodeToString(digest)
-	return fmt.Sprintf("%s.%s.%s", headerB64, payloadB64, digestB64), nil
+	return enc.jwks.Encode(enc.KeyID, payload)
 }

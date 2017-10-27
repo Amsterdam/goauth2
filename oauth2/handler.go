@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amsterdam/authz/jose"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,7 +26,8 @@ type handler struct {
 }
 
 // Handler returns an http.Handler that handles OAuth 2.0 requests.
-func Handler(baseURL string, options ...Option) (http.Handler, error) {
+func Handler(baseURL string, jwks string, options ...Option) (http.Handler, error) {
+	// Parse base URL
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
@@ -34,23 +36,27 @@ func Handler(baseURL string, options ...Option) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Create handler
 	h := &handler{
 		callbackURL: *u,
 		idps:        make(map[string]IDP),
 	}
-	// First we set options
+	// Create JWKSet
+	jwkset, err := jose.LoadJWKSet([]byte(jwks))
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Create accesstoken encoder
+	ate, err := newAccessTokenEncoder(jwkset)
+	if err != nil {
+		return nil, err
+	}
+	h.accessTokenEnc = ate
+	// Set options
 	for _, option := range options {
 		if err := option(h); err != nil {
 			return nil, err
 		}
-	}
-	// Set default accesstoken config if not set
-	if h.accessTokenEnc == nil {
-
-		log.Warnln("accesstoken config missing, using random secret.")
-		secret := make([]byte, 16)
-		rand.Read(secret)
-		h.accessTokenEnc = newAccessTokenEncoder(secret, 36000, "oauth2")
 	}
 	// Set default transient store if none given
 	if h.stateStore == nil {
@@ -69,11 +75,10 @@ func Handler(baseURL string, options ...Option) (http.Handler, error) {
 		log.Warnln("no clientmap given")
 		h.clientMap = &emptyClientMap{}
 	}
-	// Warn if none is set
+	// Warn if no IdP is set
 	if len(h.idps) == 0 {
 		log.Warnln("no IDP registered")
 	}
-
 	// Create and return handler
 	mux := http.NewServeMux()
 	mux.HandleFunc("/oauth2/authorize", h.serveAuthorizationRequest)
@@ -287,7 +292,7 @@ func (h *handler) serveIDPCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.implicitResponse(
-		w, redirectURI, accessToken, "bearer", h.accessTokenEnc.Lifetime(),
+		w, redirectURI, accessToken, "bearer", h.accessTokenEnc.Lifetime,
 		grantedScopes, state.State,
 	)
 	// Auditlog
@@ -295,8 +300,8 @@ func (h *handler) serveIDPCallback(w http.ResponseWriter, r *http.Request) {
 	logger.WithFields(log.Fields{
 		"sub":            user.UID,
 		"tokensignature": accessToken[sigIdx:],
-		"scopes": grantedScopes,
-		"expires_in": h.accessTokenEnc.Lifetime(),
+		"scopes":         grantedScopes,
+		"expires_in":     h.accessTokenEnc.Lifetime,
 	}).Info("User authorized")
 }
 

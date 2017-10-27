@@ -1,4 +1,4 @@
-package jwx
+package jose
 
 import (
 	"crypto/ecdsa"
@@ -41,6 +41,7 @@ type jwtSigner interface {
 type JWKSet struct {
 	signers   map[string]jwtSigner
 	verifiers map[string]jwtVerifier
+	kids      []string
 }
 
 // LoadJWKSet creates a JWKSet using the given json-encoded data
@@ -57,20 +58,28 @@ func LoadJWKSet(data []byte) (*JWKSet, error) {
 		if jwk, err := unmarshalJWKECPriv(key); err == nil { // Check before ECPub
 			jwkSet.signers[jwk.KeyID] = jwk
 			jwkSet.verifiers[jwk.KeyID] = jwk
+			jwkSet.kids = append(jwkSet.kids, jwk.KeyID)
 			continue
 		}
 		if jwk, err := unmarshalJWKECPub(key); err == nil { // Check after ECPriv
 			jwkSet.verifiers[jwk.KeyID] = jwk
+			jwkSet.kids = append(jwkSet.kids, jwk.KeyID)
 			continue
 		}
 		if jwk, err := unmarshalJWKSymmetric(key); err == nil {
 			jwkSet.signers[jwk.KeyID] = jwk
 			jwkSet.verifiers[jwk.KeyID] = jwk
+			jwkSet.kids = append(jwkSet.kids, jwk.KeyID)
 			continue
 		}
 		return nil, fmt.Errorf("Can't use key at index %d (%v)", i, key)
 	}
 	return jwkSet, nil
+}
+
+// KeyIDs returns all key ids in this JWK set in the order they were added.
+func (s *JWKSet) KeyIDs() []string {
+	return s.kids
 }
 
 // Encode creates a JWT from the given data, signed using the key at the given key id.

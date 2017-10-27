@@ -48,10 +48,26 @@ func AuthzProvider(p Authz) Option {
 	}
 }
 
-// AccessTokenConfig is an option that configures access token JWTs.
-func AccessTokenConfig(secret []byte, lifetime int64, issuer string) Option {
+// JWKID is an option that sets the key id of the JSON Web Key to use for access tokens.
+func JWKID(kid string) Option {
 	return func(s *handler) error {
-		s.accessTokenEnc = newAccessTokenEncoder(secret, lifetime, issuer)
+		s.accessTokenEnc.KeyID = kid
+		return nil
+	}
+}
+
+// AccessTokenLifetime is an option that sets the lifetime of access tokens.
+func AccessTokenLifetime(lifetime int64) Option {
+	return func(s *handler) error {
+		s.accessTokenEnc.Lifetime = lifetime
+		return nil
+	}
+}
+
+// AccessTokenIssuer is an option that sets the iss property in access tokens.
+func AccessTokenIssuer(issuer string) Option {
+	return func(s *handler) error {
+		s.accessTokenEnc.Issuer = issuer
 		return nil
 	}
 }

@@ -33,7 +33,8 @@ type config struct {
 
 // accessToken configuration
 type accessTokenConfig struct {
-	Secret   string `toml:"secret"`
+	JWKS     string `toml:"jwk-set"`
+	KID      string `toml:"jwk-id"`
 	Lifetime int64  `toml:"lifetime"`
 	Issuer   string `toml:"issuer"`
 }

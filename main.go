@@ -30,7 +30,7 @@ func main() {
 	opts := options(conf)
 
 	// Create handler
-	oauthHandler, err := oauth2.Handler(conf.BaseURL, opts...)
+	oauthHandler, err := oauth2.Handler(conf.BaseURL, conf.Accesstoken.JWKS, opts...)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,6 +71,10 @@ func conf() *config {
 	if conf.BaseURL == "" {
 		log.Fatal("Must set base-url in config")
 	}
+	// Check that the JWKS is set
+	if conf.Accesstoken.JWKS == "" {
+		log.Fatal("Must set JSON Web Key Set (jwk-set) in config")
+	}
 	// Warn if profiler is enabled
 	if conf.PprofEnabled {
 		log.Warnln("Profiling should not be enbaled in production!")
@@ -98,13 +102,18 @@ func options(conf *config) []oauth2.Option {
 	}
 	options = append(options, oauth2.Clients(conf.Clients))
 	// Access token config
-	if (conf.Accesstoken != accessTokenConfig{}) {
-		a := oauth2.AccessTokenConfig(
-			[]byte(conf.Accesstoken.Secret),
-			conf.Accesstoken.Lifetime,
-			conf.Accesstoken.Issuer,
+	if conf.Accesstoken.KID != "" {
+		options = append(options, oauth2.JWKID(conf.Accesstoken.KID))
+	}
+	if conf.Accesstoken.Lifetime != 0 {
+		options = append(
+			options, oauth2.AccessTokenLifetime(conf.Accesstoken.Lifetime),
 		)
-		options = append(options, a)
+	}
+	if conf.Accesstoken.Issuer != "" {
+		options = append(
+			options, oauth2.AccessTokenIssuer(conf.Accesstoken.Issuer),
+		)
 	}
 	// Authorization provider
 	if (conf.Authz != authzConfig{}) {

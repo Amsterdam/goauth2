@@ -278,16 +278,18 @@ func testHandler(tokenSecret string) http.Handler {
 		},
 	}
 	options = append(options, Clients(clients))
-	// Access token config
-	options = append(options, AccessTokenConfig([]byte(tokenSecret), 10, "issuer"))
 	// Authorization provider
 	authz := newTestAuthz(map[string][]string{
 		"user:1": []string{"scope:1", "scope:2"},
 		"user:2": []string{"scope:2", "scope:3"},
 	})
 	options = append(options, AuthzProvider(authz))
-
-	handler, _ := Handler("http://test/", options...)
+	var jwks = `
+		{ "keys": [
+			{ "kty": "EC", "use": "sig", "kid": "1", "crv": "P-256", "x": "g9IULlEyYGp3i2IZ1STiuDQ0rcrt3r3o-01f7_wOM_o=", "y": "8QfpzSUvN4UAI4PliUXpeOv8RwLU8P8qLXqhTCc4w1M=", "d": "dIz2ALAunAxB5ajQVx3fAdbttNX4WazEyvXLyi6BFBc=" }
+		]}
+	`
+	handler, _ := Handler("http://test/", jwks, options...)
 	return handler
 }
 

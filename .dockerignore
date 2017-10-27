@@ -4,5 +4,5 @@
 # except a few
 !*.go
 !oauth2
-!jwx
+!jose
 !Godeps

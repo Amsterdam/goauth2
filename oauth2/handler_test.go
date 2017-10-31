@@ -286,7 +286,7 @@ func testHandler(tokenSecret string) http.Handler {
 	options = append(options, AuthzProvider(authz))
 	var jwks = `
 		{ "keys": [
-			{ "kty": "EC", "use": "sig", "kid": "1", "crv": "P-256", "x": "g9IULlEyYGp3i2IZ1STiuDQ0rcrt3r3o-01f7_wOM_o=", "y": "8QfpzSUvN4UAI4PliUXpeOv8RwLU8P8qLXqhTCc4w1M=", "d": "dIz2ALAunAxB5ajQVx3fAdbttNX4WazEyvXLyi6BFBc=" }
+			{ "kty": "EC", "key_ops": ["sign"], "kid": "1", "crv": "P-256", "x": "g9IULlEyYGp3i2IZ1STiuDQ0rcrt3r3o-01f7_wOM_o=", "y": "8QfpzSUvN4UAI4PliUXpeOv8RwLU8P8qLXqhTCc4w1M=", "d": "dIz2ALAunAxB5ajQVx3fAdbttNX4WazEyvXLyi6BFBc=" }
 		]}
 	`
 	handler, _ := Handler("http://test/", jwks, options...)

@@ -24,12 +24,13 @@ base-url = "http://localhost:8080/"
 jwk-set = """
 { "keys": [
   { "kty": "oct",
+    "key_ops": ["sign"],
     "alg": "HS256",
     "kid": "1",
-    "k":"makemehardtoguess"
+    "k": "makemehardtoguess"
   },
   { "kty": "EC",
-    "use": "sig",
+    "key_ops": ["sign"],
     "kid": "2",
     "crv": "P-256",
     "x": "g9IULlEyYGp3i2IZ1STiuDQ0rcrt3r3o-01f7_wOM_o=",

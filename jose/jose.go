@@ -45,6 +45,7 @@ type JWKSet struct {
 }
 
 // LoadJWKSet creates a JWKSet using the given json-encoded data
+//EXPORT LoadJWKSet
 func LoadJWKSet(data []byte) (*JWKSet, error) {
 	var keyset jwks
 	if err := json.Unmarshal(data, &keyset); err != nil {
@@ -55,24 +56,52 @@ func LoadJWKSet(data []byte) (*JWKSet, error) {
 		verifiers: make(map[string]jwtVerifier),
 	}
 	for i, key := range keyset.Keys {
-		if jwk, err := unmarshalJWKECPriv(key); err == nil { // Check before ECPub
-			jwkSet.signers[jwk.KeyID] = jwk
-			jwkSet.verifiers[jwk.KeyID] = jwk
-			jwkSet.kids = append(jwkSet.kids, jwk.KeyID)
-			continue
+		var jwkParams jwkData
+		if err := json.Unmarshal(key, &jwkParams); err != nil {
+			return nil, err
 		}
-		if jwk, err := unmarshalJWKECPub(key); err == nil { // Check after ECPriv
-			jwkSet.verifiers[jwk.KeyID] = jwk
-			jwkSet.kids = append(jwkSet.kids, jwk.KeyID)
-			continue
+		if len(jwkParams.KeyOps) == 0 {
+			return nil, fmt.Errorf("Configuration error: key (kid: %s) has no key_ops", jwkParams.KeyID)
 		}
-		if jwk, err := unmarshalJWKSymmetric(key); err == nil {
-			jwkSet.signers[jwk.KeyID] = jwk
-			jwkSet.verifiers[jwk.KeyID] = jwk
-			jwkSet.kids = append(jwkSet.kids, jwk.KeyID)
-			continue
+		for _, kid := range jwkSet.kids {
+			if kid == jwkParams.KeyID {
+				return nil, fmt.Errorf("Duplicate key ID in JKWSet: %s", kid)
+			}
 		}
-		return nil, fmt.Errorf("Can't use key at index %d (%v)", i, key)
+		jwkSet.kids = append(jwkSet.kids, jwkParams.KeyID)
+		if jwkParams.KeyType == "EC" {
+			for _, op := range jwkParams.KeyOps {
+				if op == "sign" {
+					jwk, err := unmarshalJWKECPriv(key)
+					if err != nil {
+						return nil, err
+					}
+					jwkSet.signers[jwk.KeyID] = jwk
+				} else if op == "verify" {
+					jwk, err := unmarshalJWKECPub(key)
+					if err != nil {
+						return nil, err
+					}
+					jwkSet.verifiers[jwk.KeyID] = jwk
+				} else {
+					return nil, fmt.Errorf("Unsupported key operation: %s", op)
+				}
+			}
+		} else if jwkParams.KeyType == "oct" {
+			jwk, err := unmarshalJWKSymmetric(key)
+			if err != nil {
+				return nil, err
+			}
+			for _, op := range jwkParams.KeyOps {
+				if op == "sign" {
+					jwkSet.signers[jwk.KeyID] = jwk
+				} else if op == "verify" {
+					jwkSet.verifiers[jwk.KeyID] = jwk
+				}
+			}
+		} else {
+			return nil, fmt.Errorf("Can't use key at index %d (%s)", i, key)
+		}
 	}
 	return jwkSet, nil
 }
@@ -146,9 +175,9 @@ func (s *JWKSet) Decode(data string, v interface{}) error {
 
 // jwkData holds data common to all JWKs (RFC 7517 section 4)
 type jwkData struct {
-	KeyType string `json:"kty"`
-	Use     string `json:"use"`
-	KeyID   string `json:"kid"`
+	KeyType string   `json:"kty"`
+	KeyOps  []string `json:"key_ops"`
+	KeyID   string   `json:"kid"`
 }
 
 // jwkECPub is a JWK holding a public ECDSA key (RFC 7518 section 6.2.1)
@@ -168,9 +197,6 @@ func unmarshalJWKECPub(data []byte) (*jwkECPub, error) {
 	var jwk jwkECPub
 	if err := json.Unmarshal(data, &jwk); err != nil {
 		return nil, err
-	}
-	if jwk.KeyType != "EC" {
-		return nil, fmt.Errorf("Invalid kty for public ECDSA key: %s", jwk.KeyType)
 	}
 	if err := jwk.setParams(); err != nil {
 		return nil, err
@@ -262,9 +288,6 @@ func unmarshalJWKECPriv(data []byte) (*jwkECPriv, error) {
 	if err := json.Unmarshal(data, &jwk); err != nil {
 		return nil, err
 	}
-	if jwk.KeyType != "EC" {
-		return nil, fmt.Errorf("Invalid kty for private ECDSA key: %s", jwk.KeyType)
-	}
 	if err := jwk.setParams(); err != nil {
 		return nil, err
 	}
@@ -327,9 +350,6 @@ func unmarshalJWKSymmetric(data []byte) (*jwkSymmetric, error) {
 	var jwk jwkSymmetric
 	if err := json.Unmarshal(data, &jwk); err != nil {
 		return nil, err
-	}
-	if jwk.KeyType != "oct" {
-		return nil, fmt.Errorf("Invalid kty for symmetric key: %s", jwk.KeyType)
 	}
 	switch jwk.Alg {
 	case "HS256":

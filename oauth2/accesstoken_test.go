@@ -10,7 +10,7 @@ import (
 func makeEncoder() (*accessTokenEncoder, *jose.JWKSet, error) {
 	var jwks = []byte(`
 		{ "keys": [
-			{ "kty": "EC", "use": "sig", "kid": "1", "crv": "P-256", "x": "g9IULlEyYGp3i2IZ1STiuDQ0rcrt3r3o-01f7_wOM_o=", "y": "8QfpzSUvN4UAI4PliUXpeOv8RwLU8P8qLXqhTCc4w1M=", "d": "dIz2ALAunAxB5ajQVx3fAdbttNX4WazEyvXLyi6BFBc=" }
+			{ "kty": "EC", "use": "sig", "key_ops": ["sign", "verify"], "kid": "1", "crv": "P-256", "x": "g9IULlEyYGp3i2IZ1STiuDQ0rcrt3r3o-01f7_wOM_o=", "y": "8QfpzSUvN4UAI4PliUXpeOv8RwLU8P8qLXqhTCc4w1M=", "d": "dIz2ALAunAxB5ajQVx3fAdbttNX4WazEyvXLyi6BFBc=" }
 		]}
 	`)
 	jwkSet, err := jose.LoadJWKSet(jwks)

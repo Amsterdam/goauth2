@@ -42,23 +42,12 @@ func TestJWKHMAC(t *testing.T) {
 func TestJWKEC(t *testing.T) {
 	var privateJWKSet = []byte(`
 		{ "keys": [
-			{ "kty": "EC", "use": "sig", "key_ops": ["sign"], "kid": "1", "crv": "P-256", "x": "PTTjIY84aLtaZCxLTrG_d8I0G6YKCV7lg8M4xkKfwQ4=", "y": "ank6KA34vv24HZLXlChVs85NEGlpg2sbqNmR_BcgyJU=", "d":"9GJquUJf57a9sev-u8-PoYlIezIPqI_vGpIaiu4zyZk=" },
-			{ "kty": "EC", "use": "sig", "key_ops": ["sign"], "kid": "2", "crv": "P-384", "x": "IDC-5s6FERlbC4Nc_4JhKW8sd51AhixtMdNUtPxhRFP323QY6cwWeIA3leyZhz-J", "y": "eovmN9ocANS8IJxDAGSuC1FehTq5ZFLJU7XSPg36zHpv4H2byKGEcCBiwT4sFJsy", "d": "xKPj5IXjiHpQpLOgyMGo6lg_DUp738SuXkiugCFMxbGNKTyTprYPfJz42wTOXbtd" },
-			{ "kty": "EC", "use": "sig", "key_ops": ["sign"], "kid": "3", "crv": "P-521", "x": "AKarqFSECj9mH4scD_RSGD1lzBzomFWz63hvqDc8PkElCKByOUIo_N8jN5mpJS2RfbIj2d9bEDnpwQGLvu9kXG97", "y": "AF5ZmIGpat-yKHoP985gfnASPPZuhXGqPg4QdsJzdV4sY1GP45DOxwjZOmvhOzKzezmB-SSOWweMgUDNHoJreAXQ", "d": "ALV2ghdOJbsaT4QFwqbOky6TwkHEC89pQ-bUe7kt5A7-8vXI2Ihi2YEtygCQ5PwtPiTxjRs5mgzVDRp5LwHyYzvn" }
+			{ "kty": "EC", "use": "sig", "key_ops": ["sign", "verify"], "kid": "1", "crv": "P-256", "x": "PTTjIY84aLtaZCxLTrG_d8I0G6YKCV7lg8M4xkKfwQ4=", "y": "ank6KA34vv24HZLXlChVs85NEGlpg2sbqNmR_BcgyJU=", "d":"9GJquUJf57a9sev-u8-PoYlIezIPqI_vGpIaiu4zyZk=" },
+			{ "kty": "EC", "use": "sig", "key_ops": ["sign", "verify"], "kid": "2", "crv": "P-384", "x": "IDC-5s6FERlbC4Nc_4JhKW8sd51AhixtMdNUtPxhRFP323QY6cwWeIA3leyZhz-J", "y": "eovmN9ocANS8IJxDAGSuC1FehTq5ZFLJU7XSPg36zHpv4H2byKGEcCBiwT4sFJsy", "d": "xKPj5IXjiHpQpLOgyMGo6lg_DUp738SuXkiugCFMxbGNKTyTprYPfJz42wTOXbtd" },
+			{ "kty": "EC", "use": "sig", "key_ops": ["sign", "verify"], "kid": "3", "crv": "P-521", "x": "AKarqFSECj9mH4scD_RSGD1lzBzomFWz63hvqDc8PkElCKByOUIo_N8jN5mpJS2RfbIj2d9bEDnpwQGLvu9kXG97", "y": "AF5ZmIGpat-yKHoP985gfnASPPZuhXGqPg4QdsJzdV4sY1GP45DOxwjZOmvhOzKzezmB-SSOWweMgUDNHoJreAXQ", "d": "ALV2ghdOJbsaT4QFwqbOky6TwkHEC89pQ-bUe7kt5A7-8vXI2Ihi2YEtygCQ5PwtPiTxjRs5mgzVDRp5LwHyYzvn" }
 		]}
 	`)
-	privJWKS, err := LoadJWKSet(privateJWKSet)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var publicJWKSet = []byte(`
-		{ "keys": [
-			{ "kty": "EC", "use": "sig", "key_ops": ["verify"], "kid": "1", "crv": "P-256", "x": "PTTjIY84aLtaZCxLTrG_d8I0G6YKCV7lg8M4xkKfwQ4=", "y": "ank6KA34vv24HZLXlChVs85NEGlpg2sbqNmR_BcgyJU=" },
-			{ "kty": "EC", "use": "sig", "key_ops": ["verify"], "kid": "2", "crv": "P-384", "x": "IDC-5s6FERlbC4Nc_4JhKW8sd51AhixtMdNUtPxhRFP323QY6cwWeIA3leyZhz-J", "y": "eovmN9ocANS8IJxDAGSuC1FehTq5ZFLJU7XSPg36zHpv4H2byKGEcCBiwT4sFJsy" },
-			{ "kty": "EC", "use": "sig", "key_ops": ["verify"], "kid": "3", "crv": "P-521", "x": "AKarqFSECj9mH4scD_RSGD1lzBzomFWz63hvqDc8PkElCKByOUIo_N8jN5mpJS2RfbIj2d9bEDnpwQGLvu9kXG97", "y": "AF5ZmIGpat-yKHoP985gfnASPPZuhXGqPg4QdsJzdV4sY1GP45DOxwjZOmvhOzKzezmB-SSOWweMgUDNHoJreAXQ" }
-		]}
-	`)
-	pubJWKS, err := LoadJWKSet(publicJWKSet)
+	jwks, err := LoadJWKSet(privateJWKSet)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,9 +60,9 @@ func TestJWKEC(t *testing.T) {
 	}
 	for _, kid := range []string{"1", "2", "3"} {
 		var decoded TestToken
-		token := encode(t, data, privJWKS, kid)
+		token := encode(t, data, jwks, kid)
 		t.Log(token)
-		decode(t, token, &decoded, pubJWKS)
+		decode(t, token, &decoded, jwks)
 		if !reflect.DeepEqual(data, decoded) {
 			t.Fatalf("Decoded token not equal to original: %v (%T) != %v (%T)", decoded, decoded, data, data)
 		}
